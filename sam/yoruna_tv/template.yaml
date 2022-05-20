@@ -1,0 +1,60 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  yoruna_tv
+
+Transform:
+- AWS::Serverless-2016-10-31
+
+Parameters:
+  ApplianceId:
+    Description: Remo Appliance ID
+    Type: String
+  ButtonName:
+    Description: Remo TV Button Name
+    Type: String
+
+Resources:
+  YorunaTvFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/
+      Handler: app.lambda_handler
+      Runtime: ruby2.7
+      Architectures:
+        - x86_64
+      MemorySize: 128
+      Timeout: 100
+      FunctionName: "yoruna_tv"
+      Environment:
+        Variables:
+          APPLIANCE_ID: !Ref ApplianceId
+          BUTTON_NAME: !Ref ButtonName
+      Role: !GetAtt YorunaTvExecRole.Arn
+
+  YorunaTvExecRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action: 'ssm:GetParameter'
+                Resource: !Join
+                  - ':'
+                  - - 'arn:aws:ssm'
+                    - !Ref "AWS::Region"
+                    - !Ref "AWS::AccountId"
+                    - 'parameter/YorunaTvRemoApiToken'
